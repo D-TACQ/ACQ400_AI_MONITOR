@@ -37,12 +37,16 @@ chmod a+rx $ONDEMUX_COMPLETE
 
 link_aggregator_sites() 
 {
-	ASITES=$(awk '{ print $2 }' </etc/acq400/0/aggregator | tr ,  \  | sed -e s/=/=\"/ -e s/\$/\"/)
-	let ACH=1
-	eval $ASITES
+	RUNLOG=/var/log/run0.log
+	if [ -d $RUNLOG ]; then
+		sites=$(awk '{ print $2 }' <$RUNLOG | sed -e s'/,/ /')
+	else
+		ASITES=$(awk '{ print $2 }' </etc/acq400/0/aggregator | tr ,  \  | sed -e s/=/=\"/ -e s/\$/\"/)
+		eval $ASITES
+	fi
 	make_ondemux_complete $sites
 
-	for site in $sites
+	let ACH=1; for site in $sites
 	do
 		TWF=/dev/shm/AI.$site.wf
 		[ -d $TWF ] || mkdir $TWF
