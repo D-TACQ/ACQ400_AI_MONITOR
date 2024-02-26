@@ -1,4 +1,5 @@
 #!/bin/sh
 
-/usr/local/bin/ai_monitor_all start
+echo ai_monitor.init 01 stub: run0 does it better
+#/usr/local/bin/ai_monitor_all start
 

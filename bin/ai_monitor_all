@@ -38,13 +38,18 @@ chmod a+rx $ONDEMUX_COMPLETE
 link_aggregator_sites() 
 {
 	RUNLOG=/var/log/run0.log
-	if [ -d $RUNLOG ]; then
+	if [ -e $RUNLOG ]; then
 		sites=$(awk '{ print $2 }' <$RUNLOG | sed -e s'/,/ /')
+		logger -t ai_monitor link_aggregator_sites RUNLOG $sites
+		echo > /dev/console ai_monitor link_aggregator_sites RUNLOG $sites
 	else
 		ASITES=$(awk '{ print $2 }' </etc/acq400/0/aggregator | tr ,  \  | sed -e s/=/=\"/ -e s/\$/\"/)
 		eval $ASITES
+		logger -t ai_monitor link_aggregator_sites AGGREGATOR $sites
+		echo > /dev/console ai_monitor link_aggregator_sites AGGREGATOR $sites
 	fi
 	make_ondemux_complete $sites
+
 
 	let ACH=1; for site in $sites
 	do
@@ -68,33 +73,27 @@ run_monitor() {
 		sleep 2
 	done
 
-	for SX in /dev/acq400.?
-	do
-		SITE=${SX#*.}
-		OPTS="--verbose $VERBOSE "
-		DATA32=$(cat /etc/acq400/$SITE/data32)
-		if [ $DATA32 -eq 1 ]; then
-			OPTS="$OPTS -w 4"
-		fi
-		NCFILE=/etc/acq400/$SITE/NCHAN
-		NCHAN=0
-		if [ -e $NCFILE ]; then
-			NCHAN=$(cat $NCFILE)
-			OPTS="$OPTS --nchan $NCHAN"
-		fi	
-		if [ $SITE -eq 0 ] && [ $NCHAN -gt 0 ]; then
-			link_aggregator_sites
-			OPTS="$OPTS --oncompletion $ONDEMUX_COMPLETE"
-		fi
+	SX=/dev/acq400.0
+	SITE=${SX#*.}
+	OPTS="--verbose $VERBOSE "
+	DATA32=$(cat /etc/acq400/$SITE/data32)
+	if [ $DATA32 -eq 1 ]; then
+		OPTS="$OPTS -w 4"
+	fi
+	NCFILE=/etc/acq400/$SITE/NCHAN
+	NCHAN=0
+	if [ -e $NCFILE ]; then
+		NCHAN=$(cat $NCFILE)
+		OPTS="$OPTS --nchan $NCHAN"
+	fi	
+	if [ $NCHAN -gt 0 ]; then
+		link_aggregator_sites
+		OPTS="$OPTS --oncompletion $ONDEMUX_COMPLETE"
+	fi
 
-		echo run /usr/local/bin/acq400_stream $OPTS --hb0 $SITE
-		/usr/local/bin/acq400_stream $OPTS --hb0 $SITE &
+	echo run /usr/local/bin/acq400_stream $OPTS --hb0 $SITE
+	/usr/local/bin/acq400_stream $OPTS --hb0 $SITE &
 
-		if [ $SITE -eq 0 ] && [ $NCHAN -gt 0 ]; then
-			break
-		fi
-	done
-	
 	forsleep update-histo 2>&1 >/dev/null &
 	wait;wait;wait
 }
@@ -103,7 +102,10 @@ trap "pkill -s 0" SIGINT SIGTERM
 
 case "$1" in
 run_monitor)
-	run_monitor;;
+	echo >/dev/console run_monitor 01
+	run_monitor
+	echo >/dev/console run_monitor 99
+	;;
 start)
 	stop; start;;
 stop)
