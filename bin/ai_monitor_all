@@ -39,7 +39,7 @@ link_aggregator_sites()
 {
 	RUNLOG=/var/log/run0.log
 	if [ -e $RUNLOG ]; then
-		sites=$(awk '{ print $2 }' <$RUNLOG | sed -e s'/,/ /')
+		sites=$(awk '{ print $2 }' <$RUNLOG | sed -e s'/,/ /g')
 		logger -t ai_monitor link_aggregator_sites RUNLOG $sites
 		echo > /dev/console ai_monitor link_aggregator_sites RUNLOG $sites
 	else
